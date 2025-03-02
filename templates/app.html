@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Upload and Training</title>
+    <style>
+        .tab {
+            overflow: hidden;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+        }
+        .tab button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            transition: 0.3s;
+        }
+        .tab button:hover {
+            background-color: #ddd;
+        }
+        .tab button.active {
+            background-color: #ccc;
+        }
+        .tabcontent {
+            display: none;
+            padding: 6px 12px;
+            border: 1px solid #ccc;
+            border-top: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome, {{ username }}</h1>
+
+    <div class="tab">
+        <button class="tablinks" onclick="openTab(event, 'Training')">Training</button>
+        <button class="tablinks" onclick="openTab(event, 'Inference')">Inference</button>
+    </div>
+
+    <div id="Training" class="tabcontent">
+        <h2>Image Upload and Flux Training</h2>
+        <form action="/process" method="post" enctype="multipart/form-data">
+            <p>Model Name: <input type="text" name="model_name" required></p>
+            <p>Trigger Word: <input type="text" name="trigger_word" required></p>
+            <p>Upload 15 Images (5 of subject1, 5 of subject2, 5 of both):</p>
+            <input type="file" name="images" multiple accept="image/*" required>
+            <p><input type="submit" value="Process and Train"></p>
+        </form>
+        {% if result %}
+        <h3>Result:</h3>
+        <p>{{ result }}</p>
+        {% endif %}
+    </div>
+
+    <div id="Inference" class="tabcontent">
+        <h2>Model Inference</h2>
+        <form action="/inference" method="post">
+            <p>Select Model:
+                <select name="model_name" required>
+                    {% for model in user_models %}
+                    <option value="{{ model.name }}">{{ model.name }} (Trigger: {{ model.trigger }})</option>
+                    {% endfor %}
+                </select>
+            </p>
+            <p>Prompt: <input type="text" name="prompt" required></p>
+            <p><input type="submit" value="Generate Image"></p>
+        </form>
+        {% if inference_result %}
+        <h3>Generated Image:</h3>
+        <img src="{{ inference_result }}" alt="Generated Image">
+        {% endif %}
+
+        <h3>Your Models:</h3>
+        <ul>
+        {% for model in user_models %}
+            <li>
+                <strong>{{ model.name }}</strong><br>
+                Trigger: {{ model.trigger }}<br>
+                Description: {{ model.description }}
+            </li>
+        {% endfor %}
+        </ul>
+    </div>
+
+    <script>
+    function openTab(evt, tabName) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tabcontent");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+        }
+        tablinks = document.getElementsByClassName("tablinks");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+        document.getElementById(tabName).style.display = "block";
+        evt.currentTarget.className += " active";
+    }
+    
+    // Open the Training tab by default
+    document.getElementsByClassName("tablinks")[0].click();
+    </script>
+</body>
+</html>
