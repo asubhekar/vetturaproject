@@ -1,53 +1,73 @@
 import os
 import zipfile
-import replicate
-from huggingface_hub import HfApi, upload_file
 import tempfile
-import psycopg2
-import requests
-from psycopg2 import sql
-from fastapi import UploadFile
 from typing import List
-from openai import OpenAI 
+import requests
 import base64
-import time
+import asyncio
+
+import replicate
+from huggingface_hub import HfApi
+from openai import OpenAI 
+
+from fastapi import UploadFile, BackgroundTasks
+
+import sqlalchemy
+from google.cloud.sql.connector import Connector, IPTypes
+
+from fastapi.templating import Jinja2Templates
+import sendgrid
+from sendgrid.helpers.mail import Mail, Email, To, Content
+
+
+
+
+# Initialize Jinja2Templates
+templates = Jinja2Templates(directory="templates")
+
+INSTANCE_CONNECTION_NAME = "quiet-canto-451319-v0:us-central1:photographyagent"
+DB_USER = "postgres"
+DB_PASS = "Tambourinet$64"
+DB_NAME = "user_database"
 
 def get_db_connection():
-    return psycopg2.connect(
-        dbname="user_database",
-        user="atharvsubhekar",
-        password="",
-        host="localhost"
+    def getconn():
+        with Connector() as connector:
+            conn = connector.connect(
+                INSTANCE_CONNECTION_NAME,
+                "pg8000",
+                user=DB_USER,
+                password=DB_PASS,
+                db=DB_NAME,
+                ip_type=IPTypes.PUBLIC,
+            )
+            return conn
+
+    engine = sqlalchemy.create_engine(
+        "postgresql+pg8000://",
+        creator=getconn,
     )
+    return engine.connect()
 
 def fetch_db(username):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute(f"SELECT hf_token, hf_username FROM users WHERE LOWER(TRIM(username)) = LOWER('{username}')")
-    result = cur.fetchone()
-    cur.close()
-    conn.close()
-    return result
+    with get_db_connection() as conn:
+        result = conn.execute(sqlalchemy.text("SELECT hf_token, hf_username FROM users WHERE LOWER(TRIM(username)) = LOWER(:username)"), {"username": username})
+        return result.fetchone()
 
 def insert_model_to_db(username, model_name, trigger_word, description):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute(
-            sql.SQL("INSERT INTO user_models (username, model_name, model_trigger, model_description) VALUES (%s, %s, %s, %s)"),
-            [username, model_name, trigger_word, description]
-        )
-        conn.commit()
-    except psycopg2.Error as e:
-        print(f"Error inserting model into database: {e}")
-        conn.rollback()
-    finally:
-        cur.close()
-        conn.close()
+    with get_db_connection() as conn:
+        try:
+            conn.execute(
+                sqlalchemy.text("INSERT INTO user_models (username, model_name, model_trigger, model_description) VALUES (:username, :model_name, :trigger_word, :description)"),
+                {"username": username, "model_name": model_name, "trigger_word": trigger_word, "description": description}
+            )
+            conn.commit()
+        except sqlalchemy.exc.IntegrityError as e:
+            print(f"Error inserting model into database: {e}")
+            conn.rollback()
 
 def generate_llm_caption(image_path, person_type):
     """Generates codenames and descriptions using GPT-4 Vision"""
-    # Read and encode the image
     with open(image_path, "rb") as image_file:
         encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
 
@@ -71,14 +91,12 @@ def generate_llm_caption(image_path, person_type):
 async def zip_and_upload_images(images: List[UploadFile], hf_user: str, hf_token: str, model_name: str):
     with tempfile.TemporaryDirectory() as temp_dir:
         for i, img in enumerate(images):
-            # Save image
             img_filename = f"image{i+1}{os.path.splitext(img.filename)[1]}"
             img_path = os.path.join(temp_dir, img_filename)
             contents = await img.read()
             with open(img_path, "wb") as f:
                 f.write(contents)
             
-            # Generate and save description
             person_type = "subject1" if i < 5 else "subject2" if i < 10 else "both subjects"
             description = generate_llm_caption(img_path, person_type)
             desc_filename = f"image{i+1}.txt"
@@ -86,14 +104,12 @@ async def zip_and_upload_images(images: List[UploadFile], hf_user: str, hf_token
             with open(desc_path, "w") as f:
                 f.write(description)
         
-        # Create zip file
         zip_path = os.path.join(temp_dir, "data.zip")
         with zipfile.ZipFile(zip_path, "w") as zip_file:
             for file in os.listdir(temp_dir):
                 if file.startswith("image"):
                     zip_file.write(os.path.join(temp_dir, file), file)
         
-        # Upload to Hugging Face
         repo_id = f"{hf_user}/{model_name}_dataset"
         api = HfApi(token=hf_token)
         api.create_repo(repo_id=repo_id, repo_type="dataset", exist_ok=True)
@@ -107,7 +123,7 @@ async def zip_and_upload_images(images: List[UploadFile], hf_user: str, hf_token
 
     return zip_path
 
-def flux_training(hf_user, hf_token, model_name, triggerword):
+async def flux_training(hf_user, hf_token, model_name, triggerword):
     repo_id = f"{hf_user}/{model_name}_dataset"
     api = HfApi(token=hf_token)
     zip_path = api.hf_hub_download(repo_id=repo_id, filename="data.zip", repo_type="dataset")
@@ -141,23 +157,19 @@ def flux_training(hf_user, hf_token, model_name, triggerword):
         },
     )
 
-    # Wait for training to complete
     while training.status != "succeeded":
+        await asyncio.sleep(10)
         training.reload()
-        time.sleep(10)
         print(training.status)
 
-    # Download the file from the URL
     response = requests.get(training.output["weights"])
     training_repo_id = f"{hf_user}/{model_name}"
     api.create_repo(repo_id=training_repo_id, repo_type="model", exist_ok=True)
-    # Create a temporary file
     with tempfile.NamedTemporaryFile(delete=False, suffix=".tar") as temp_file:
         temp_file.write(response.content)
         temp_file_path = temp_file.name
         
     try:
-        # Upload the local file to Hugging Face Hub
         api.upload_file(
             path_or_fileobj=temp_file_path,
             path_in_repo="model.safetensors",
@@ -165,19 +177,53 @@ def flux_training(hf_user, hf_token, model_name, triggerword):
             repo_type="model"
         )
     finally:
-        # Delete the temporary file
         os.unlink(temp_file_path)
 
     return training
 
-async def process_images_and_train(username, model_name, images, trigger):
-    hf_token, hf_user = fetch_db(username)
-    
-    await zip_and_upload_images(images, hf_user, hf_token, model_name)
-    
-    training = flux_training(hf_user, hf_token, model_name, triggerword=trigger)
+def send_completion_email(to_email, model_name):
+    sg_apikey = "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"
+    sg = sendgrid.SendGridAPIClient(api_key=sg_apikey)
+    from_email = Email("subhuatharva@gmail.com") 
+    subject = f"Training Completed for Model: {model_name}"
 
-    description = f"Model trained on {len(images)} images with trigger word: {trigger}"
-    insert_model_to_db(username, model_name, trigger, description) # Change model name to model name + version
-    
-    return f"Training completed successfully! Training ID: {training.id}"
+    # Read HTML content from the file
+    with open("templates/email.html", "r") as f:
+        html_content = f.read()
+
+    # Embed the image as a Base64 string
+    image_path = "templates/DreamWeaver.png"  
+    with open(image_path, "rb") as image_file:
+        encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
+
+    html_content = html_content.replace(
+        'src="http://cdn.mcauto-images-production.sendgrid.net/954c252fedab403f/7dc41373-34dd-434e-a1d8-0b85cfcefa0a/256x359.png"',
+        f'src="data:image/png;base64,{encoded_image}"'
+    )
+
+    # Replace placeholders in the HTML content if needed
+    html_content = html_content.replace("{{model_name}}", model_name)
+
+    content = Content("text/html", html_content)
+    mail = Mail(from_email, To(to_email), subject, content)
+    response = sg.client.mail.send.post(request_body=mail.get())
+    print(f"Email sent with status code: {response.status_code}")
+
+def run_training(hf_user, hf_token, model_name, trigger, username, email_id):
+    #training = flux_training(hf_user, hf_token, model_name, triggerword=trigger)
+    #while training.status != "succeeded":
+    #    training.reload()
+    #    time.sleep(10)
+    description = f"Model trained on 15 images with trigger word: {trigger}"
+    print(description)
+    #insert_model_to_db(username, model_name, trigger, description)
+    if email_id != None:
+        send_completion_email(email_id, model_name)
+
+async def process_images_and_train(background_tasks: BackgroundTasks, username, model_name, images, trigger, email_id = None):
+    hf_token, hf_user = fetch_db(username)
+    #await zip_and_upload_images(images, hf_user, hf_token, model_name)
+    background_tasks.add_task(run_training, hf_user, hf_token, model_name, trigger, username, email_id)
+    return "Training started in the background"
+
+

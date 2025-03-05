@@ -1,33 +1,45 @@
 import replicate
 from fastapi import HTTPException
-import psycopg2
-from psycopg2 import sql
+import sqlalchemy
+from google.cloud.sql.connector import Connector, IPTypes
 import requests
 
+INSTANCE_CONNECTION_NAME = "quiet-canto-451319-v0:us-central1:photographyagent"
+DB_USER = "postgres"
+DB_PASS = "Tambourinet$64"
+DB_NAME = "user_database"
+
 def get_db_connection():
-    return psycopg2.connect(
-        dbname="user_database",
-        user="atharvsubhekar",
-        password="",
-        host="localhost"
+    def getconn():
+        with Connector() as connector:
+            conn = connector.connect(
+                INSTANCE_CONNECTION_NAME,
+                "pg8000",
+                user=DB_USER,
+                password=DB_PASS,
+                db=DB_NAME,
+                ip_type=IPTypes.PUBLIC,
+            )
+            return conn
+
+    engine = sqlalchemy.create_engine(
+        "postgresql+pg8000://",
+        creator=getconn,
     )
+    return engine.connect()
 
 def get_user_models(username):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute(
-            sql.SQL("SELECT model_name, model_trigger, model_description FROM user_models WHERE username = %s"),
-            [username]
-        )
-        models = cur.fetchall()
-        return [{"name": m[0], "trigger": m[1], "description": m[2]} for m in models]
-    except psycopg2.Error as e:
-        print(f"Error fetching user models: {e}")
-        return []
-    finally:
-        cur.close()
-        conn.close()
+    with get_db_connection() as conn:
+        try:
+            result = conn.execute(
+                sqlalchemy.text("SELECT model_name, model_trigger, model_description FROM user_models WHERE username = :username"),
+                {"username": username}
+            )
+            models = result.fetchall()
+            return [{"name": m[0], "trigger": m[1], "description": m[2]} for m in models]
+        except sqlalchemy.exc.SQLAlchemyError as e:
+            print(f"Error fetching user models: {e}")
+            return []
 
 def get_latest_model_version(model_owner, model_name, api_token):
     headers = {
@@ -43,7 +55,6 @@ def get_latest_model_version(model_owner, model_name, api_token):
     if not versions:
         raise HTTPException(status_code=404, detail=f"No versions found for model {model_owner}/{model_name}")
     return versions[0]["id"]
-
 
 def run_inference(model_name, prompt):
     replicate_client = replicate.Client(api_token="r8_EBW5V3SAopFXqoSKwSldKIzzu8TsMXM0wCia4")

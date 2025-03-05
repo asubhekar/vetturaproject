@@ -1,6 +1,6 @@
 # main.py
 
-from fastapi import FastAPI, Request, Form, Depends, HTTPException, status, File, UploadFile
+from fastapi import FastAPI, Request, Form, Depends, HTTPException, status, File, UploadFile, BackgroundTasks
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -51,14 +51,23 @@ async def app_page(request: Request):
     user_models = get_user_models(username)
     return templates.TemplateResponse("app.html", {"request": request, "username": username, "user_models": user_models})
 
+###@app.post("/process")
+#async def process(request: Request, model_name: str = Form(...), images: List[UploadFile] = File(...), trigger_word: str = Form(...)):
+#    username = request.session.get("username")
+#    if not username:
+#        raise HTTPException(status_code=401, detail="Not authenticated")
+#    result = await process_images_and_train(username, model_name, images, trigger_word)
+#    user_models = get_user_models(username)
+#    return templates.TemplateResponse("app.html", {"request": request, "username": username, "result": result, "user_models": user_models})
+
 @app.post("/process")
-async def process(request: Request, model_name: str = Form(...), images: List[UploadFile] = File(...), trigger_word: str = Form(...)):
+async def process(request: Request, background_tasks: BackgroundTasks, model_name: str = Form(...), images: List[UploadFile] = File(...), trigger_word: str = Form(...), email_id: str = Form(...)):
     username = request.session.get("username")
     if not username:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    result = await process_images_and_train(username, model_name, images, trigger_word)
-    user_models = get_user_models(username)
-    return templates.TemplateResponse("app.html", {"request": request, "username": username, "result": result, "user_models": user_models})
+    result = await process_images_and_train(background_tasks, username, model_name, images, trigger_word, email_id)
+    #user_models = get_user_models(username), "user_models": user_models
+    return templates.TemplateResponse("app.html", {"request": request, "username": username, "result": result})
 
 @app.post("/inference")
 async def inference(request: Request, model_name: str = Form(...), prompt: str = Form(...)):
@@ -76,4 +85,4 @@ async def inference(request: Request, model_name: str = Form(...), prompt: str =
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

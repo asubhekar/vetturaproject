@@ -42,11 +42,15 @@
     <div id="Training" class="tabcontent">
         <h2>Image Upload and Flux Training</h2>
         <form action="/process" method="post" enctype="multipart/form-data">
+            <p>Please provide an email ID for model training completion notification.</p>
+            <p>Email Address: <input type="email" name="email_id" required></p>
             <p>Model Name: <input type="text" name="model_name" required></p>
             <p>Trigger Word: <input type="text" name="trigger_word" required></p>
             <p>Upload 15 Images (5 of subject1, 5 of subject2, 5 of both):</p>
             <input type="file" name="images" multiple accept="image/*" required>
             <p><input type="submit" value="Process and Train"></p>
+            
+
         </form>
         {% if result %}
         <h3>Result:</h3>
@@ -67,11 +71,6 @@
             <p>Prompt: <input type="text" name="prompt" required></p>
             <p><input type="submit" value="Generate Image"></p>
         </form>
-        {% if inference_result %}
-        <h3>Generated Image:</h3>
-        <img src="{{ inference_result }}" alt="Generated Image">
-        {% endif %}
-
         <h3>Your Models:</h3>
         <ul>
         {% for model in user_models %}
@@ -82,6 +81,12 @@
             </li>
         {% endfor %}
         </ul>
+
+        {% if inference_result %}
+        <h3>Generated Image:</h3>
+        <img src="{{ inference_result }}" alt="Generated Image">
+        {% endif %}
+    
     </div>
 
     <script>
