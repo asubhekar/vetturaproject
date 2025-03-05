@@ -1,12 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Image Upload and Training</title>
+    <title>Dream Weaver</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #000;
+            color: #575757;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding-top: 20px;
+        }
+        h1 {
+            color: #fa6400;
+            text-align: center;
+            margin-bottom: 30px;
+        }
         .tab {
             overflow: hidden;
-            border: 1px solid #ccc;
-            background-color: #f1f1f1;
+            border: 1px solid #222;
+            background-color: #111;
+            display: flex;
+            justify-content: center;
         }
         .tab button {
             background-color: inherit;
@@ -16,23 +36,103 @@
             cursor: pointer;
             padding: 14px 16px;
             transition: 0.3s;
+            color: #575757;
         }
         .tab button:hover {
-            background-color: #ddd;
+            background-color: #333;
+            color: #fff;
         }
         .tab button.active {
-            background-color: #ccc;
+            background-color: #fa6400;
+            color: white;
         }
         .tabcontent {
             display: none;
-            padding: 6px 12px;
-            border: 1px solid #ccc;
+            padding: 20px;
+            border: 1px solid #222;
             border-top: none;
+            background-color: #111;
+            width: 80%;
+            max-width: 600px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        label {
+            margin-top: 10px;
+            color: #575757;
+        }
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        select,
+        input[type="file"] {
+            padding: 8px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border: 1px solid #333;
+            background-color: #222;
+            color: #fff;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        input[type="submit"] {
+            background-color: #fa6400;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        input[type="submit"]:hover {
+            background-color: #d70000;
+        }
+        .error {
+            color: #d70000;
+            margin-bottom: 10px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #222;
+            background-color: #222;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+        }
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border: 1px solid #333;
+            background-color: #222;
+            color: #fff;
+            box-sizing: border-box;
+        }
+        #Inference h3, #Training h3 {
+            color: #fa6400;
+            margin-bottom: 10px;
+        }
+        #Inference ul {
+            margin-bottom: 20px;
+        }
+        #Inference li strong {
+            color: #fa6400;
         }
     </style>
 </head>
 <body>
-    <h1>Welcome, {{ username }}</h1>
+    <h1>Dream Weaver</h1>
+    <h2>Welcome, {{ username }}</h2>
 
     <div class="tab">
         <button class="tablinks" onclick="openTab(event, 'Training')">Training</button>
@@ -40,72 +140,76 @@
     </div>
 
     <div id="Training" class="tabcontent">
-        <h2>Image Upload and Flux Training</h2>
+        <h3>Image Upload and Flux Training</h3>
         <form action="/process" method="post" enctype="multipart/form-data">
-            <p>Please provide an email ID for model training completion notification.</p>
-            <p>Email Address: <input type="email" name="email_id" required></p>
-            <p>Model Name: <input type="text" name="model_name" required></p>
-            <p>Trigger Word: <input type="text" name="trigger_word" required></p>
-            <p>Upload 15 Images (5 of subject1, 5 of subject2, 5 of both):</p>
-            <input type="file" name="images" multiple accept="image/*" required>
-            <p><input type="submit" value="Process and Train"></p>
+            <label for="email_id">Email Address:</label>
+            <input type="email" id="email_id" name="email_id" required>
             
-
+            <label for="model_name">Model Name:</label>
+            <input type="text" id="model_name" name="model_name" required>
+            
+            <label for="trigger_word">Trigger Word:</label>
+            <input type="text" id="trigger_word" name="trigger_word" required>
+            
+            <label for="images">Upload 15 Images (5 of subject1, 5 of subject2, 5 of both):</label>
+            <input type="file" id="images" name="images" multiple accept="image/*" required>
+            
+            <input type="submit" value="Process and Train">
         </form>
         {% if result %}
-        <h3>Result:</h3>
-        <p>{{ result }}</p>
+            <h3>Result:</h3>
+            <p>{{ result }}</p>
         {% endif %}
     </div>
 
     <div id="Inference" class="tabcontent">
-        <h2>Model Inference</h2>
+        <h3>Model Inference</h3>
         <form action="/inference" method="post">
-            <p>Select Model:
-                <select name="model_name" required>
-                    {% for model in user_models %}
+            <label for="model_name">Select Model:</label>
+            <select id="model_name" name="model_name" required>
+                {% for model in user_models %}
                     <option value="{{ model.name }}">{{ model.name }} (Trigger: {{ model.trigger }})</option>
-                    {% endfor %}
-                </select>
-            </p>
-            <p>Prompt: <input type="text" name="prompt" required></p>
-            <p><input type="submit" value="Generate Image"></p>
+                {% endfor %}
+            </select>
+            
+            <label for="prompt">Prompt:</label>
+            <input type="text" id="prompt" name="prompt" required>
+            
+            <input type="submit" value="Generate Image">
         </form>
         <h3>Your Models:</h3>
         <ul>
-        {% for model in user_models %}
-            <li>
-                <strong>{{ model.name }}</strong><br>
-                Trigger: {{ model.trigger }}<br>
-                Description: {{ model.description }}
-            </li>
-        {% endfor %}
+            {% for model in user_models %}
+                <li>
+                    <strong>{{ model.name }}</strong><br>
+                    Trigger: {{ model.trigger }}<br>
+                    Description: {{ model.description }}
+                </li>
+            {% endfor %}
         </ul>
 
         {% if inference_result %}
-        <h3>Generated Image:</h3>
-        <img src="{{ inference_result }}" alt="Generated Image">
+            <h3>Generated Image:</h3>
+            <img src="{{ inference_result }}" alt="Generated Image">
         {% endif %}
-    
     </div>
 
     <script>
-    function openTab(evt, tabName) {
-        var i, tabcontent, tablinks;
-        tabcontent = document.getElementsByClassName("tabcontent");
-        for (i = 0; i < tabcontent.length; i++) {
-            tabcontent[i].style.display = "none";
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
         }
-        tablinks = document.getElementsByClassName("tablinks");
-        for (i = 0; i < tablinks.length; i++) {
-            tablinks[i].className = tablinks[i].className.replace(" active", "");
-        }
-        document.getElementById(tabName).style.display = "block";
-        evt.currentTarget.className += " active";
-    }
-    
-    // Open the Training tab by default
-    document.getElementsByClassName("tablinks")[0].click();
+        // Open the Training tab by default
+        document.getElementsByClassName("tablinks")[0].click();
     </script>
 </body>
 </html>

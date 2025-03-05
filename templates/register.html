@@ -1,19 +1,82 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Register</title>
+    <title>Register - Dream Weaver</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #000;
+            color: #575757;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        h1 {
+            color: #fa6400;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        form {
+            background-color: #111;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            width: 80%;
+            max-width: 500px;
+            text-align: center;
+        }
+        input[type="text"],
+        input[type="password"] {
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #333;
+            background-color: #222;
+            color: #fff;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        input[type="submit"] {
+            background-color: #fa6400;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        input[type="submit"]:hover {
+            background-color: #d70000;
+        }
+        .error {
+            color: #d70000;
+            margin-bottom: 10px;
+        }
+        a {
+            color: #fa6400;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        a:hover {
+            color: #d70000;
+        }
+    </style>
 </head>
 <body>
-    <h1>Register</h1>
+    <h1>Dream Weaver</h1>
+    <h2>Register</h2>
     {% if error %}
-    <p style="color: red;">{{ error }}</p>
+        <p class="error">{{ error }}</p>
     {% endif %}
     <form method="post">
-        <p>Username: <input type="text" name="username" required></p>
-        <p>Password: <input type="password" name="password" required></p>
-        <p>Hugging Face Username: <input type="text" name="hf_username" required></p>
-        <p>Hugging Face Token: <input type="text" name="hf_token" required></p>
-        <p><input type="submit" value="Register"></p>
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <input type="text" name="hf_username" placeholder="Hugging Face Username" required>
+        <input type="text" name="hf_token" placeholder="Hugging Face Token" required>
+        <input type="submit" value="Register">
     </form>
     <p>Already have an account? <a href="/">Login here</a></p>
 </body>
