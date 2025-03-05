@@ -10,3 +10,4 @@ replicate
 openai
 sqlalchemy
 sendgrid
+cloud-sql-python-connector[pg8000]
