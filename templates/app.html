@@ -118,7 +118,7 @@
             color: #fff;
             box-sizing: border-box;
         }
-        #Inference h3, #Training h3 {
+        #Inference h3, #Training h3, #Chat h3{
             color: #fa6400;
             margin-bottom: 10px;
         }
@@ -137,6 +137,7 @@
     <div class="tab">
         <button class="tablinks" onclick="openTab(event, 'Training')">Training</button>
         <button class="tablinks" onclick="openTab(event, 'Inference')">Inference</button>
+        <button class="tablinks" onclick="openTab(event, 'Chat')">ChatBot</button>
     </div>
 
     <div id="Training" class="tabcontent">
@@ -151,10 +152,10 @@
             Grab a cup of coffee, sit back, and let us notify you via email when your model is ready. The training typically takes about 20 minutes (depends on the resolution of your images).
         </p>
         <form action="/process" method="post" enctype="multipart/form-data">
-            <label for="email_id">Your Magic Mailbox:</label>
+            <label for="email_id">Your Mailbox:</label>
             <input type="email" id="email_id" name="email_id" required placeholder="We'll notify you on this email address!">
             
-            <label for="model_name">Christen Your Creation:</label>
+            <label for="model_name">Name Your Creation:</label>
             <input type="text" id="model_name" name="model_name" required placeholder="Give your AI a catchy name">
             
             <label for="trigger_word">The Enchanted Keyword:</label>
@@ -217,7 +218,11 @@
             </p>
         {% endif %}
     </div>
-
+    <div id="Chat" class="tabcontent">
+        <h3>Chat Interface</h3>
+        <p> This feature is still under experimentation! Stay tuned for more updates.</p>
+        <p> You will be notified via email once chat inferencing is online </p> 
+    </div>
     <script>
         function openTab(evt, tabName) {
             var i, tabcontent, tablinks;
