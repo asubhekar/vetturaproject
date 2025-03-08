@@ -51,14 +51,6 @@ async def app_page(request: Request):
     user_models = get_user_models(username)
     return templates.TemplateResponse("app.html", {"request": request, "username": username, "user_models": user_models})
 
-###@app.post("/process")
-#async def process(request: Request, model_name: str = Form(...), images: List[UploadFile] = File(...), trigger_word: str = Form(...)):
-#    username = request.session.get("username")
-#    if not username:
-#        raise HTTPException(status_code=401, detail="Not authenticated")
-#    result = await process_images_and_train(username, model_name, images, trigger_word)
-#    user_models = get_user_models(username)
-#    return templates.TemplateResponse("app.html", {"request": request, "username": username, "result": result, "user_models": user_models})
 
 @app.post("/process")
 async def process(request: Request, background_tasks: BackgroundTasks, model_name: str = Form(...), images: List[UploadFile] = File(...), trigger_word: str = Form(...), email_id: str = Form(...)):

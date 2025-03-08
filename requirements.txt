@@ -8,6 +8,6 @@ requests
 huggingface_hub
 replicate
 openai
+google-cloud-sql-connector
 sqlalchemy
 sendgrid
-cloud-sql-python-connector[pg8000]

@@ -58,6 +58,7 @@ def get_latest_model_version(model_owner, model_name, api_token):
 
 def run_inference(model_name, prompt):
     replicate_client = replicate.Client(api_token="r8_EBW5V3SAopFXqoSKwSldKIzzu8TsMXM0wCia4")
+    prompt += "Realistic"
     try:
         latest_version = get_latest_model_version("asubhekar", model_name,"r8_EBW5V3SAopFXqoSKwSldKIzzu8TsMXM0wCia4")
         model = f"asubhekar/{model_name}:{latest_version}"

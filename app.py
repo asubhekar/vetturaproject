@@ -224,6 +224,6 @@ async def process_images_and_train(background_tasks: BackgroundTasks, username, 
     hf_token, hf_user = fetch_db(username)
     #await zip_and_upload_images(images, hf_user, hf_token, model_name)
     background_tasks.add_task(run_training, hf_user, hf_token, model_name, trigger, username, email_id)
-    return "Training started in the background"
+    return "Your AI is learning. You will be notified via email once it is completed. Once trained, the model can be found in your HuggingFace account."
 
 
