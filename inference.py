@@ -81,7 +81,7 @@ def run_inference(model_name, prompt):
             }
         )
         if output and isinstance(output[0], replicate.helpers.FileOutput):
-            return str(output[0])  # Convert FileOutput to string to get the URL
+            return str(output[0])  
         else:
             raise ValueError("Unexpected output format from inference")
     except Exception as e:

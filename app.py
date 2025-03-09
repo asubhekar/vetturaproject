@@ -5,6 +5,7 @@ from typing import List
 import requests
 import base64
 import asyncio
+import time
 
 import replicate
 from huggingface_hub import HfApi
@@ -21,8 +22,6 @@ from sendgrid.helpers.mail import Mail, Email, To, Content
 
 
 
-
-# Initialize Jinja2Templates
 templates = Jinja2Templates(directory="templates")
 
 INSTANCE_CONNECTION_NAME = "quiet-canto-451319-v0:us-central1:photographyagent"
@@ -187,11 +186,9 @@ def send_completion_email(to_email, model_name):
     from_email = Email("subhuatharva@gmail.com") 
     subject = f"Training Completed for Model: {model_name}"
 
-    # Read HTML content from the file
     with open("templates/email.html", "r") as f:
         html_content = f.read()
-
-    # Embed the image as a Base64 string
+    
     image_path = "templates/DreamWeaver.png"  
     with open(image_path, "rb") as image_file:
         encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
@@ -201,7 +198,7 @@ def send_completion_email(to_email, model_name):
         f'src="data:image/png;base64,{encoded_image}"'
     )
 
-    # Replace placeholders in the HTML content if needed
+    
     html_content = html_content.replace("{{model_name}}", model_name)
 
     content = Content("text/html", html_content)
@@ -210,19 +207,19 @@ def send_completion_email(to_email, model_name):
     print(f"Email sent with status code: {response.status_code}")
 
 def run_training(hf_user, hf_token, model_name, trigger, username, email_id):
-    #training = flux_training(hf_user, hf_token, model_name, triggerword=trigger)
-    #while training.status != "succeeded":
-    #    training.reload()
-    #    time.sleep(10)
+    training = flux_training(hf_user, hf_token, model_name, triggerword=trigger)
+    while training.status != "succeeded":
+        training.reload()
+        time.sleep(10)
     description = f"Model trained on 15 images with trigger word: {trigger}"
     print(description)
-    #insert_model_to_db(username, model_name, trigger, description)
+    insert_model_to_db(username, model_name, trigger, description)
     if email_id != None:
         send_completion_email(email_id, model_name)
 
 async def process_images_and_train(background_tasks: BackgroundTasks, username, model_name, images, trigger, email_id = None):
     hf_token, hf_user = fetch_db(username)
-    #await zip_and_upload_images(images, hf_user, hf_token, model_name)
+    await zip_and_upload_images(images, hf_user, hf_token, model_name)
     background_tasks.add_task(run_training, hf_user, hf_token, model_name, trigger, username, email_id)
     return "Your AI is learning. You will be notified via email once it is completed. Once trained, the model can be found in your HuggingFace account."
 

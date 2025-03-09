@@ -51,6 +51,10 @@ async def app_page(request: Request):
     user_models = get_user_models(username)
     return templates.TemplateResponse("app.html", {"request": request, "username": username, "user_models": user_models})
 
+@app.get("/logout")
+async def logout(request: Request):
+    request.session.pop("username", None)
+    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
 @app.post("/process")
 async def process(request: Request, background_tasks: BackgroundTasks, model_name: str = Form(...), images: List[UploadFile] = File(...), trigger_word: str = Form(...), email_id: str = Form(...)):
