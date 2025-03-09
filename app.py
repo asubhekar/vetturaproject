@@ -206,11 +206,9 @@ def send_completion_email(to_email, model_name):
     response = sg.client.mail.send.post(request_body=mail.get())
     print(f"Email sent with status code: {response.status_code}")
 
-def run_training(hf_user, hf_token, model_name, trigger, username, email_id):
-    training = flux_training(hf_user, hf_token, model_name, triggerword=trigger)
-    while training.status != "succeeded":
-        training.reload()
-        time.sleep(10)
+async def run_training(hf_user, hf_token, model_name, trigger, username, email_id):
+    print("Training started in background.")
+    training = await flux_training(hf_user, hf_token, model_name, triggerword=trigger)
     description = f"Model trained on 15 images with trigger word: {trigger}"
     print(description)
     insert_model_to_db(username, model_name, trigger, description)
@@ -222,5 +220,3 @@ async def process_images_and_train(background_tasks: BackgroundTasks, username, 
     await zip_and_upload_images(images, hf_user, hf_token, model_name)
     background_tasks.add_task(run_training, hf_user, hf_token, model_name, trigger, username, email_id)
     return "Your AI is learning. You will be notified via email once it is completed. Once trained, the model can be found in your HuggingFace account."
-
-
