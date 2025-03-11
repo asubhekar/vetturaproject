@@ -2,10 +2,11 @@ import sqlalchemy
 from google.cloud.sql.connector import Connector, IPTypes
 from huggingface_hub import HfApi
 import hashlib
+import os
 
 INSTANCE_CONNECTION_NAME = "quiet-canto-451319-v0:us-central1:photographyagent"
 DB_USER = "postgres"
-DB_PASS = "Tambourinet$64"
+DB_PASS = os.getenv("DB_PASSWORD")
 DB_NAME = "user_database"
 
 def get_db_connection():

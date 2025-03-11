@@ -3,10 +3,15 @@ from fastapi import HTTPException
 import sqlalchemy
 from google.cloud.sql.connector import Connector, IPTypes
 import requests
+import os
+
+#openai_key = os.getenv("OPEN_API_KEY")
+#sendgrid_key = os.getenv("SENDGRID_KEY")
+replicate_key = os.getenv("REPLICATE_KEY")
 
 INSTANCE_CONNECTION_NAME = "quiet-canto-451319-v0:us-central1:photographyagent"
 DB_USER = "postgres"
-DB_PASS = "Tambourinet$64"
+DB_PASS = os.getenv("DB_PASSWORD")
 DB_NAME = "user_database"
 
 def get_db_connection():
@@ -41,9 +46,9 @@ def get_user_models(username):
             print(f"Error fetching user models: {e}")
             return []
 
-def get_latest_model_version(model_owner, model_name, api_token):
+def get_latest_model_version(model_owner, model_name):
     headers = {
-        "Authorization": f"Token {api_token}"
+        "Authorization": f"Token {replicate_key}"
     }
     response = requests.get(
         f"https://api.replicate.com/v1/models/{model_owner}/{model_name}/versions",
@@ -57,10 +62,10 @@ def get_latest_model_version(model_owner, model_name, api_token):
     return versions[0]["id"]
 
 def run_inference(model_name, prompt):
-    replicate_client = replicate.Client(api_token="r8_EBW5V3SAopFXqoSKwSldKIzzu8TsMXM0wCia4")
+    replicate_client = replicate.Client(api_token=replicate_key)
     prompt += "Realistic"
     try:
-        latest_version = get_latest_model_version("asubhekar", model_name,"r8_EBW5V3SAopFXqoSKwSldKIzzu8TsMXM0wCia4")
+        latest_version = get_latest_model_version("asubhekar", model_name)
         model = f"asubhekar/{model_name}:{latest_version}"
         output = replicate_client.run(
             model,

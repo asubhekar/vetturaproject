@@ -20,13 +20,16 @@ from fastapi.templating import Jinja2Templates
 import sendgrid
 from sendgrid.helpers.mail import Mail, Email, To, Content
 
+openai_key = os.getenv("OPEN_API_KEY")
+sendgrid_key = os.getenv("SENDGRID_KEY")
+replicate_key = os.getenv("REPLICATE_KEY")
 
 
 templates = Jinja2Templates(directory="templates")
 
 INSTANCE_CONNECTION_NAME = "quiet-canto-451319-v0:us-central1:photographyagent"
 DB_USER = "postgres"
-DB_PASS = "Tambourinet$64"
+DB_PASS = os.getenv("DB_PASSWORD")
 DB_NAME = "user_database"
 
 def get_db_connection():
@@ -70,7 +73,7 @@ def generate_llm_caption(image_path, person_type):
     with open(image_path, "rb") as image_file:
         encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
 
-    openai_client = OpenAI(api_key="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")
+    openai_client = OpenAI(api_key=openai_key)
     prompt = f"""Analyze this {person_type} photo and generate a detailed description."""
 
     response = openai_client.chat.completions.create(
@@ -127,7 +130,7 @@ async def flux_training(hf_user, hf_token, model_name, triggerword):
     api = HfApi(token=hf_token)
     zip_path = api.hf_hub_download(repo_id=repo_id, filename="data.zip", repo_type="dataset")
     
-    replicate_client = replicate.Client(api_token="r8_EBW5V3SAopFXqoSKwSldKIzzu8TsMXM0wCia4")
+    replicate_client = replicate.Client(api_token=replicate_key)
     model = replicate_client.models.create(
         owner="asubhekar",
         name=model_name,
@@ -181,8 +184,8 @@ async def flux_training(hf_user, hf_token, model_name, triggerword):
     return training
 
 def send_completion_email(to_email, model_name):
-    sg_apikey = "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"
-    sg = sendgrid.SendGridAPIClient(api_key=sg_apikey)
+    
+    sg = sendgrid.SendGridAPIClient(api_key=sendgrid_key)
     from_email = Email("subhuatharva@gmail.com") 
     subject = f"Training Completed for Model: {model_name}"
 
